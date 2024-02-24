@@ -257,17 +257,38 @@ BEGIN
 END circle_area;
 /
 
-CREATE FUNCTION average_product_price(
-    p_product_type_id IN INTEGER
-) RETURN NUMBER AS
-    v_average_product_price NUMBER;
-BEGIN
-    SELECT AVG(price)
-    INTO v_average_product_price
-    FROM products
-    WHERE product_type_id = p_product_type_id;
-    RETURN v_average_product_price;
-END average_product_price;
+create or replace function average_product_price(
+    p_product_type_id in integer
+) return number as
+    v_average_product_price number;
+    invalid_product_type_id exception;
+begin
+
+    if p_product_type_id < 1 then
+        raise invalid_product_type_id;
+    end if;
+
+    select avg(price)
+    into v_average_product_price
+    from products
+    where product_type_id = p_product_type_id;
+
+    if v_average_product_price is null then
+        raise no_data_found;
+    end if;
+
+    return v_average_product_price;
+
+exception
+
+    when invalid_product_type_id then
+        raise_application_error(-20001, 'Аргумент product_type_id должен быть больше 1');
+        return null;
+    when others then
+        raise_application_error(-20002, 'Запрос не вернул ни одной строки');
+        return null;
+
+end average_product_price;
 /
 
 CREATE PACKAGE product_package AS
